@@ -1,0 +1,6 @@
+{
+  "name": "Still Waters — Online Teen Counselling",
+  "description": "Online counselling, emotional support, psychoeducation, and developmental coaching for teenagers aged 13–19 by Sonibare Titilayo Mary, with Google Calendar and Gmail booking integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
