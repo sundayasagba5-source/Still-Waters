@@ -1,11 +1,10 @@
 import { PRACTICE_INFO } from '../data/ethicalPack';
 
 interface FooterProps {
-  onOpenWorkspace?: () => void;
   onNavigateLegal?: (mode: 'privacy' | 'terms') => void;
 }
 
-export function Footer({ onOpenWorkspace, onNavigateLegal }: FooterProps) {
+export function Footer({ onNavigateLegal }: FooterProps) {
   return (
     <footer className="bg-[#071A33] text-[#DBEAFE] border-t border-[#163A63]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14">
@@ -36,27 +35,25 @@ export function Footer({ onOpenWorkspace, onNavigateLegal }: FooterProps) {
               </a>
             </p>
             <p className="tabular-nums">
-              Phone / WhatsApp:{' '}
+              Business Line / WhatsApp:{' '}
               <a
-                href="tel:+2348138066476"
+                href={`tel:${PRACTICE_INFO.phoneHref}`}
                 className="text-white hover:text-[#38BDF8] underline underline-offset-4"
               >
                 {PRACTICE_INFO.phone}
               </a>
             </p>
+            <p className="text-xs text-[#93C5FD]">{PRACTICE_INFO.businessHours}</p>
             <p>Instagram: {PRACTICE_INFO.instagram}</p>
             <p className="text-[#93C5FD]">{PRACTICE_INFO.location}</p>
           </div>
 
           <div className="md:col-span-3 space-y-2.5 text-sm">
-            <p className="text-xs font-semibold text-[#FB923C]">Payment &amp; Navigation</p>
-            <p className="text-white font-medium">
-              {PRACTICE_INFO.bankDetails.bankName} ·{' '}
-              <span className="font-mono tabular-nums">
-                {PRACTICE_INFO.bankDetails.accountNumber}
-              </span>
+            <p className="text-xs font-semibold text-[#FB923C]">Navigation &amp; Policies</p>
+            <p className="text-xs text-[#BAE6FD] leading-relaxed">
+              Verified payment details are sent privately after booking confirmation.
             </p>
-            <nav aria-label="Footer links" className="pt-2 flex flex-col gap-2 text-[#BAE6FD]">
+            <nav aria-label="Footer links" className="pt-1 flex flex-col gap-2 text-[#BAE6FD]">
               <a href="#about" className="hover:text-white transition-colors">
                 Vision &amp; Mission
               </a>
@@ -90,15 +87,6 @@ export function Footer({ onOpenWorkspace, onNavigateLegal }: FooterProps) {
               >
                 Terms of Service
               </a>
-              {onOpenWorkspace && (
-                <button
-                  type="button"
-                  onClick={onOpenWorkspace}
-                  className="text-left text-xs text-[#7DD3FC] hover:text-white transition-colors pt-1"
-                >
-                  Counsellor Calendar Sync
-                </button>
-              )}
             </nav>
           </div>
         </div>

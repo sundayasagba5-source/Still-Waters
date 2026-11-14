@@ -24,12 +24,42 @@ for (const scope of WORKSPACE_SCOPES) {
   provider.addScope(scope);
 }
 provider.setCustomParameters({
-  prompt: 'consent',
+  prompt: 'select_account consent',
 });
 
 let isSigningIn = false;
 // In-memory access token cache ONLY (never stored in localStorage or sessionStorage)
 let cachedAccessToken: string | null = null;
+
+export function formatGoogleAuthError(err: unknown): string {
+  const code =
+    typeof err === 'object' && err !== null && 'code' in err
+      ? String((err as { code?: unknown }).code)
+      : '';
+  const rawMessage = err instanceof Error ? err.message : String(err || '');
+
+  if (code === 'auth/unauthorized-domain') {
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
+    return `Domain "${host}" is not authorized in Firebase Authentication. Open Firebase Console → Authentication → Settings → Authorized domains and add "${host}".`;
+  }
+  if (code === 'auth/popup-blocked') {
+    return 'Your browser blocked the Google Sign-In popup. Please allow popups for this site (or open the app in a full browser tab) and try again.';
+  }
+  if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+    return 'Google Sign-In was closed before finishing. Click "Sign in with Google", select an approved test account, click "Continue" on the Google verification notice, and tick the Calendar & Gmail checkboxes.';
+  }
+  if (code === 'auth/operation-not-allowed') {
+    return 'Google Sign-In provider is disabled in Firebase Console → Authentication → Sign-in method. Please enable Google there.';
+  }
+  if (code === 'auth/network-request-failed') {
+    return 'Network error while connecting to Google Sign-In. Please check your internet connection and retry.';
+  }
+  if (rawMessage.includes('access_denied')) {
+    return 'Google blocked access (Error 403: access_denied) because this account is not yet in the Test users list for project gen-lang-client-0490265049. Sign in with fotachurchmedia@gmail.com, or have fotachurchmedia@gmail.com add sundayasagba5@gmail.com and titilayomaryfayehun@gmail.com under Google Cloud Console → Google Auth Platform → Audience → Test users.';
+  }
+
+  return rawMessage || 'Google verification could not be completed. Please try again.';
+}
 
 export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
@@ -58,12 +88,17 @@ export const googleSignIn = async (): Promise<{
     isSigningIn = true;
     const result = await signInWithPopup(auth, provider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
+    const fallbackToken = (
+      result as unknown as { _tokenResponse?: { oauthAccessToken?: string } }
+    )?._tokenResponse?.oauthAccessToken;
+    const accessToken = credential?.accessToken || fallbackToken;
+
+    if (!accessToken) {
       throw new Error(
-        'Google verification completed, but calendar/email permission token was not granted. Please allow Calendar and Gmail access when prompted.'
+        'Google Sign-In succeeded, but Calendar & Gmail permissions were not granted. Please click "Continue" and check the permission boxes when prompted.'
       );
     }
-    cachedAccessToken = credential.accessToken;
+    cachedAccessToken = accessToken;
     return { user: result.user, accessToken: cachedAccessToken };
   } finally {
     isSigningIn = false;
@@ -77,8 +112,10 @@ export const logout = async () => {
   cachedAccessToken = null;
 };
 
+export type SessionPlanType = 'discovery' | 'counselling' | 'package4' | 'package6';
+
 export interface BookingPayload {
-  sessionType: 'discovery' | 'counselling';
+  sessionType: SessionPlanType;
   preferredDate: string; // YYYY-MM-DD
   preferredTime: string; // HH:MM (24h)
   timezone: string; // IANA timezone string e.g. Africa/Lagos
@@ -103,6 +140,22 @@ export interface BookingPayload {
   teenSignature: string;
   parentSignature: string;
   consentDate: string;
+}
+
+export function formatSessionPlanLabel(
+  sessionType: SessionPlanType,
+  currency: 'NGN' | 'USD'
+): string {
+  if (sessionType === 'discovery') {
+    return 'Free 20-min Parent Discovery Call';
+  }
+  if (sessionType === 'package4') {
+    return `4-Session Support Package (4 × 45 mins · ${currency === 'NGN' ? '₦75,000' : '$150'})`;
+  }
+  if (sessionType === 'package6') {
+    return `6-Session Support Package (6 × 45 mins · ${currency === 'NGN' ? '₦110,000' : '$220'})`;
+  }
+  return `Single Online Counselling Session (45 mins · ${currency === 'NGN' ? '₦20,000' : '$40'})`;
 }
 
 function localTimeInTimezoneToUtcDate(
@@ -189,17 +242,13 @@ function encodeBase64UrlUtf8(input: string): string {
 
 export function buildBookingSummaryText(booking: BookingPayload): string {
   const isDiscovery = booking.sessionType === 'discovery';
-  const sessionLabel = isDiscovery
-    ? 'Free 20-min Parent Discovery Call'
-    : `Online Teen Counselling Session (45 mins · ${
-        booking.currency === 'NGN' ? '₦20,000' : '$40'
-      })`;
+  const sessionLabel = formatSessionPlanLabel(booking.sessionType, booking.currency);
 
   return [
-    'STILL WATERS — NEW COUNSELLING BOOKING APPLICATION',
-    '====================================================',
-    `Session Type: ${sessionLabel}`,
-    `Preferred Date & Time: ${booking.preferredDate} at ${booking.preferredTime} (${booking.timezone})`,
+    'STILL WATERS — NEW COUNSELLING BOOKING REQUEST',
+    '================================================',
+    `Selected Plan: ${sessionLabel}`,
+    `Preferred First Date & Time: ${booking.preferredDate} at ${booking.preferredTime} (${booking.timezone})`,
     `Focus Area: ${booking.focusArea}`,
     '',
     'TEENAGER DETAILS',
@@ -220,10 +269,10 @@ export function buildBookingSummaryText(booking: BookingPayload): string {
     isDiscovery
       ? 'PAYMENT: Free 20-minute Parent Discovery Call (No fee required)'
       : [
-          'PAYMENT DETAILS (GTBANK)',
-          'Bank: GTBank | Account Number: 0014786146 | Account Name: Sonibare Titilayo Mary',
-          `Fee: ${booking.currency === 'NGN' ? '₦20,000 (NGN)' : '$40 (USD)'}`,
-          `Transfer / Payer Reference: ${booking.paymentReference || 'Pending confirmation'}`,
+          'PAYMENT ARRANGEMENT',
+          `Selected Plan Fee: ${sessionLabel}`,
+          `Preferred Payment Method: ${booking.paymentReference || 'Secure payment link / verified invoice after confirmation'}`,
+          'Note: Verified payment link/invoice to be sent directly to parent email upon booking confirmation.',
         ].join('\n'),
     '',
     'ETHICAL, LEGAL & SAFEGUARDING PACK SIGN-OFF',
@@ -323,10 +372,7 @@ export async function sendBookingEmailNotification(
   booking: BookingPayload,
   calendarLink?: string
 ): Promise<{ messageId: string }> {
-  const sessionLabel =
-    booking.sessionType === 'discovery'
-      ? 'Free 20-min Parent Discovery Call'
-      : '45-min Teen Counselling Session';
+  const sessionLabel = formatSessionPlanLabel(booking.sessionType, booking.currency);
 
   const subject = `[Still Waters Booking] ${sessionLabel} — ${booking.teenName} (${booking.preferredDate})`;
   const bodyText = [
@@ -412,10 +458,7 @@ export function buildGoogleCalendarTemplateUrl(booking: BookingPayload): string 
 }
 
 export function buildMailtoFallbackUrl(booking: BookingPayload): string {
-  const sessionLabel =
-    booking.sessionType === 'discovery'
-      ? 'Free 20-min Parent Discovery Call'
-      : '45-min Teen Counselling Session';
+  const sessionLabel = formatSessionPlanLabel(booking.sessionType, booking.currency);
   const subject = encodeURIComponent(
     `[Still Waters Booking] ${sessionLabel} — ${booking.teenName} (${booking.preferredDate})`
   );

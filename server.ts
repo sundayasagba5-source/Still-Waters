@@ -1,4 +1,5 @@
 import express from 'express';
+import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +17,7 @@ interface StoredBooking {
   createdAt: string;
   syncedToCalendar: boolean;
   calendarLink?: string;
-  sessionType: 'discovery' | 'counselling';
+  sessionType: 'discovery' | 'counselling' | 'package4' | 'package6';
   preferredDate: string;
   preferredTime: string;
   timezone: string;
@@ -112,6 +113,7 @@ async function verifyGoogleBearerToken(
 
 async function startServer() {
   const app = express();
+  const httpServer = http.createServer(app);
   const PORT = 3000;
 
   app.use(express.json({ limit: '1mb' }));
@@ -130,13 +132,20 @@ async function startServer() {
         return res.status(400).json({ error: 'Missing required booking fields.' });
       }
 
+      const validSessionType =
+        body.sessionType === 'discovery' ||
+        body.sessionType === 'package4' ||
+        body.sessionType === 'package6'
+          ? body.sessionType
+          : 'counselling';
+
       const id = `SW-${Date.now().toString(36).toUpperCase()}`;
       const newBooking: StoredBooking = {
         id,
         createdAt: new Date().toISOString(),
         syncedToCalendar: Boolean(body.syncedToCalendar),
         calendarLink: body.calendarLink,
-        sessionType: body.sessionType === 'discovery' ? 'discovery' : 'counselling',
+        sessionType: validSessionType,
         preferredDate: String(body.preferredDate),
         preferredTime: String(body.preferredTime),
         timezone: String(body.timezone || 'Africa/Lagos'),
@@ -223,10 +232,55 @@ async function startServer() {
 
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
+    const hmrDisabled = process.env.DISABLE_HMR === 'true';
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        allowedHosts: true,
+        ws: hmrDisabled ? false : { server: httpServer },
+        hmr: hmrDisabled ? false : true,
+      },
       appType: 'spa',
     });
+
+    if (hmrDisabled) {
+      // Vite 8 injects /@vite/client into index.html and attempts a WebSocket connection
+      // even when ws/hmr are false. Provide the client runtime exports without WebSockets.
+      app.get('/@vite/client', (_req, res) => {
+        res.type('application/javascript').send(`
+export class ErrorOverlay { constructor() {} }
+export function createHotContext() {
+  return {
+    data: {},
+    accept() {},
+    acceptExports() {},
+    dispose() {},
+    prune() {},
+    invalidate() {},
+    on() {},
+    off() {},
+    send() {},
+  };
+}
+export function injectQuery(id) { return id; }
+export function removeStyle(id) {
+  const el = document.querySelector('style[data-vite-dev-id="' + CSS.escape(id) + '"]');
+  if (el) el.remove();
+}
+export function updateStyle(id, content) {
+  let style = document.querySelector('style[data-vite-dev-id="' + CSS.escape(id) + '"]');
+  if (!style) {
+    style = document.createElement('style');
+    style.setAttribute('type', 'text/css');
+    style.setAttribute('data-vite-dev-id', id);
+    document.head.appendChild(style);
+  }
+  style.textContent = content;
+}
+`);
+      });
+    }
+
     app.use(vite.middlewares);
   } else {
     const distDir = path.join(__dirname, 'dist');
@@ -236,7 +290,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Still Waters server running on http://0.0.0.0:${PORT}`);
   });
 }

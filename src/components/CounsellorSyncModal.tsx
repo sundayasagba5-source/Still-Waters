@@ -4,6 +4,8 @@ import {
   COUNSELLOR_EMAIL,
   StoredBooking,
   createCalendarBookingEvent,
+  formatGoogleAuthError,
+  formatSessionPlanLabel,
   getAccessToken,
   googleSignIn,
   sendBookingEmailNotification,
@@ -60,11 +62,7 @@ export function CounsellorSyncModal({ isOpen, onClose }: CounsellorSyncModalProp
       setViewerEmail(user.email || null);
       await loadBookings(accessToken);
     } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Google sign-in failed. Ensure your email is listed under Test Users in Google Cloud Console.'
-      );
+      setError(formatGoogleAuthError(err));
       setLoading(false);
     }
   };
@@ -222,12 +220,8 @@ export function CounsellorSyncModal({ isOpen, onClose }: CounsellorSyncModalProp
                           {item.teenName} (Age {item.teenAge}) — Parent: {item.parentName}
                         </p>
                         <p className="text-xs text-[#486581]">
-                          {item.sessionType === 'discovery'
-                            ? 'Free 20-min Parent Discovery Call'
-                            : `45-min Counselling (${item.currency}) · Ref: ${
-                                item.paymentReference || 'Pending'
-                              }`}{' '}
-                          · {item.parentEmail} · {item.parentPhone}
+                          {formatSessionPlanLabel(item.sessionType, item.currency)} ·{' '}
+                          {item.parentEmail} · {item.parentPhone}
                         </p>
                       </div>
 
@@ -270,8 +264,28 @@ export function CounsellorSyncModal({ isOpen, onClose }: CounsellorSyncModalProp
           )}
 
           {error && (
-            <div className="p-4 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-xs font-medium text-[#991B1B]">
-              {error}
+            <div className="p-4 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-xs font-medium text-[#991B1B] space-y-2">
+              <p className="leading-relaxed">{error}</p>
+              <div className="flex flex-wrap items-center gap-4 pt-1">
+                <a
+                  href="https://console.cloud.google.com/auth/audience?project=gen-lang-client-0490265049"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-semibold text-[#1D4ED8] underline underline-offset-4"
+                >
+                  <span>Open Google Cloud Test Users</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <a
+                  href={typeof window !== 'undefined' ? window.location.href : '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-semibold text-[#991B1B] underline underline-offset-4"
+                >
+                  <span>Open in New Tab</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
             </div>
           )}
 

@@ -116,32 +116,63 @@ export function EthicalPackSection() {
         </div>
 
         {/* Crisis & Child Helpline Strip */}
-        <div className="mt-10 p-6 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="flex items-start gap-3.5 max-w-2xl">
+        <div className="mt-10 p-6 sm:p-7 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] space-y-5">
+          <div className="flex items-start gap-3.5">
             <ShieldAlert className="w-6 h-6 text-[#DC2626] shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-base font-semibold text-[#7F1D1D]">
-                Emergency &amp; Child Safeguarding Helplines
+              <h3 className="text-base sm:text-lg font-semibold text-[#7F1D1D]">
+                Emergency &amp; Child Safeguarding Helplines (Immediate Danger Only)
               </h3>
               <p className="mt-1 text-sm text-[#991B1B] leading-relaxed">
-                Still Waters is an online counselling service and not a 24/7 emergency crisis
-                facility. If a teenager is in immediate danger of self-harm, abuse, or medical
-                emergency, contact local emergency services or these support lines immediately:
+                Still Waters is an appointment-based online counselling service and is{' '}
+                <strong>not a 24/7 emergency or crisis response centre</strong>. If a teenager
+                is in immediate danger of self-harm, abuse, or medical emergency, please contact
+                official emergency services below (or dial your local emergency number abroad,
+                such as 999 or 911):
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 shrink-0">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {PRACTICE_INFO.helplines.map((line) => (
               <a
-                key={line.number}
+                key={`${line.organization}-${line.number}`}
                 href={`tel:${line.number.replace(/\s+/g, '')}`}
-                className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-white border border-[#FCA5A5] text-xs font-semibold text-[#991B1B] hover:bg-[#FEE2E2] transition-colors whitespace-nowrap"
+                className="p-4 rounded-xl bg-white border border-[#FCA5A5] hover:bg-[#FFF5F5] transition-colors flex flex-col justify-between gap-2"
               >
-                <PhoneCall className="w-3.5 h-3.5 text-[#DC2626]" />
-                <span className="font-mono tabular-nums">{line.number}</span>
+                <div>
+                  <p className="text-xs font-semibold text-[#B91C1C]">
+                    {line.organization}
+                  </p>
+                  <p className="mt-1 text-xs text-[#7F1D1D] leading-relaxed">
+                    {line.scope}
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-[#FEE2E2] flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-mono font-bold text-[#991B1B] tabular-nums">
+                    <PhoneCall className="w-3.5 h-3.5 text-[#DC2626]" />
+                    <span>{line.number}</span>
+                  </span>
+                  <span className="text-[11px] font-medium text-[#B91C1C]">
+                    {line.hours}
+                  </span>
+                </div>
               </a>
             ))}
+          </div>
+
+          <div className="pt-4 border-t border-[#FECACA] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#7F1D1D]">
+            <span>
+              <strong>Non-Emergency Still Waters Enquiries &amp; Bookings:</strong> Call or
+              WhatsApp our business line ({PRACTICE_INFO.businessHours}).
+            </span>
+            <a
+              href={`tel:${PRACTICE_INFO.phoneHref}`}
+              className="inline-flex items-center gap-1.5 font-mono font-semibold text-[#0B2545] hover:text-[#1D4ED8] underline underline-offset-4 whitespace-nowrap"
+            >
+              <PhoneCall className="w-3.5 h-3.5" />
+              <span>{PRACTICE_INFO.phone}</span>
+            </a>
           </div>
         </div>
       </div>

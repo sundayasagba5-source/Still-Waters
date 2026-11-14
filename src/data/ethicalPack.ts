@@ -11,6 +11,13 @@ export interface EthicalDocument {
   acknowledgment: string;
 }
 
+export interface HelplineItem {
+  organization: string;
+  scope: string;
+  hours: string;
+  number: string;
+}
+
 export const PRACTICE_INFO = {
   brand: 'Still Waters',
   tagline: 'A safe place to be heard, healed and guided',
@@ -21,8 +28,9 @@ export const PRACTICE_INFO = {
     'B.Sc. Psychology (University of Ibadan), M.Sc. HRM (Bells University), Professional Teen Counsellor, Developmental Psychology',
   experienceYears: '16+ Years',
   email: 'titilayomaryfayehun@gmail.com',
-  phone: '+234 813 806 6476',
-  whatsappNumbers: ['+234 813 806 6476', '0907 824 4818', '0805 166 6668'],
+  phone: '0805 166 6668',
+  phoneHref: '+2348051666668',
+  businessHours: 'Mon–Sat · 9:00 AM – 6:00 PM WAT (Non-emergency bookings & enquiries)',
   instagram: '@titilayofayehun',
   location: 'Lagos, Nigeria – Online Worldwide (Home & Abroad)',
   scripture:
@@ -68,26 +76,64 @@ export const PRACTICE_INFO = {
         'An introductory consultation for parents/guardians to discuss your teenager’s needs, ask questions, and confirm fit before booking.',
     },
     counselling: {
-      title: 'Online Teen Counselling Session',
+      title: 'Single Counselling Session',
       duration: '45 mins',
       feeNgn: '₦20,000',
       feeUsd: '$40',
-      label: 'Founding Rate',
+      label: 'Standard Session Rate',
       description:
         'One-on-one confidential online session for teenagers aged 13–19 via Zoom or Google Meet.',
     },
+    packages: [
+      {
+        id: 'package4' as const,
+        title: '4-Session Support Package',
+        duration: '4 × 45 mins',
+        feeNgn: '₦75,000',
+        feeUsd: '$150',
+        savings: 'Save ₦5,000 / $10',
+        description:
+          'Ideal for steady emotional support, coping tools, or exam/transition seasons.',
+      },
+      {
+        id: 'package6' as const,
+        title: '6-Session Support Package',
+        duration: '6 × 45 mins',
+        feeNgn: '₦110,000',
+        feeUsd: '$220',
+        savings: 'Save ₦10,000 / $20',
+        description:
+          'Comprehensive continuity for deeper resilience, identity, and career clarity.',
+      },
+    ],
   },
-  bankDetails: {
-    bankName: 'GTBank',
-    accountNumber: '0014786146',
-    accountName: 'Sonibare Titilayo Mary',
-    note: 'Payment confirms booking for 45-minute counselling sessions.',
+  paymentPolicy: {
+    title: 'Verified Payment After Confirmation',
+    summary:
+      'To protect families against scams and fake payment claims, Still Waters never posts bank account numbers publicly on this website.',
+    instruction:
+      'Once your booking request is reviewed and your slot is confirmed, a secure Paystack / Flutterwave payment link or verified invoice is sent directly to the parent/guardian email.',
   },
   helplines: [
-    { label: 'Nigeria Child Helpline / Support Line 1', number: '0907 824 4818' },
-    { label: 'Nigeria Child Helpline / Support Line 2', number: '0814 264 8581' },
-    { label: 'Designated Safeguarding Lead', number: '+234 813 806 6476' },
-  ],
+    {
+      organization: 'Nigeria National Emergency Number',
+      scope: 'Immediate life-safety, medical, or police emergency across Nigeria',
+      hours: '24/7 Toll-Free',
+      number: '112',
+    },
+    {
+      organization: 'Lagos State DSVA Helpline',
+      scope: 'Domestic & sexual violence, child abuse & urgent protection support',
+      hours: '24/7 Toll-Free',
+      number: '08000 333 333',
+    },
+    {
+      organization: 'Nigeria Child & Family Support Lines',
+      scope: 'Child safeguarding guidance & community crisis referral',
+      hours: 'External Support Network (Hours vary by operator)',
+      number: '0907 824 4818',
+    },
+  ] as HelplineItem[],
 };
 
 export const SERVICES_LIST = [
@@ -164,14 +210,15 @@ export const ETHICAL_PACK_DOCUMENTS: EthicalDocument[] = [
     title: 'Informed Consent',
     subtitle: 'Session format, fees, voluntary participation & technology policy',
     summary:
-      'Outlines the practical terms of 45-minute online Zoom/Google Meet sessions, founding fee terms, and rescheduling.',
+      'Outlines the practical terms of 45-minute online Zoom/Google Meet sessions, package rates, and secure post-confirmation payment.',
     sections: [
       {
         heading: 'Session Structure & Fee Policy',
         items: [
           'Duration & Setting: 45-minute sessions held online via Zoom or Google Meet in a private space.',
           'Recording Policy: Strictly no audio or video recording without explicit written consent from all parties.',
-          'Founding Rate: ₦20,000 (NGN) / $40 (USD) per 45-minute session via GTBank (0014786146). Payment confirms booking.',
+          'Session Fees: Single Session ₦20,000 (Nigeria) / $40 (International); 4-Session Package ₦75,000 / $150; 6-Session Package ₦110,000 / $220.',
+          'Secure Payment Process: A verified Paystack/Flutterwave payment link or direct invoice is sent privately to the parent/guardian email only after booking confirmation. Payment confirms the slot.',
           'Free 20-minute Parent Discovery Call is available prior to starting counselling.',
         ],
       },
@@ -179,7 +226,7 @@ export const ETHICAL_PACK_DOCUMENTS: EthicalDocument[] = [
         heading: 'Voluntary Care & Contingencies',
         items: [
           'Voluntary Participation: Counselling is voluntary and collaborative for both teenager and parent/guardian.',
-          'Emergency Service Notice: Still Waters is not a 24/7 crisis or emergency hospital service; in immediate danger, contact local emergency services or child helplines.',
+          'Emergency Service Notice: Still Waters is not a 24/7 crisis or emergency hospital service; in immediate danger, contact local emergency services (e.g., 112 in Nigeria, 999/911 abroad) immediately.',
           'Technical Failure Policy: If internet or platform disruption interrupts a session significantly, the session will be rescheduled at no extra cost.',
         ],
       },
@@ -231,7 +278,7 @@ export const ETHICAL_PACK_DOCUMENTS: EthicalDocument[] = [
         items: [
           'Where safe and appropriate, the counsellor will discuss the concern transparently with the teenager first.',
           'The counsellor will contact the parent/guardian immediately unless doing so places the teenager at greater risk.',
-          'Urgent referrals may be made to the Nigeria Child Helpline: 0907 824 4818, 0814 264 8581, or +234 813 806 6476 (or local emergency authorities abroad).',
+          'Urgent referrals may be directed to Nigeria Emergency Services (112), Lagos State DSVA (08000 333 333), Child Support Line (0907 824 4818), or local emergency authorities abroad.',
         ],
       },
     ],
@@ -249,7 +296,7 @@ export const ETHICAL_PACK_DOCUMENTS: EthicalDocument[] = [
       {
         heading: 'Safeguarding Standards & Boundary Rules',
         items: [
-          'Designated Safeguarding Lead: Sonibare Titilayo Mary (titilayomaryfayehun@gmail.com · +234 813 806 6476).',
+          'Designated Safeguarding Lead: Sonibare Titilayo Mary (titilayomaryfayehun@gmail.com · Business Line: 0805 166 6668, Mon–Sat 9 AM – 6 PM WAT).',
           'Paramount Principle: The safety, dignity, and welfare of the child are paramount at all times.',
           'No Private 1:1 Messaging Outside Sessions: All scheduling and communication occur through approved parent-aware channels.',
           'Under-16 Rule: For teenagers under 16, parents/guardians are copied on session communications and scheduling.',

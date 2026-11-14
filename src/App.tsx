@@ -14,17 +14,17 @@ import { Footer } from './components/Footer';
 import { CounsellorSyncModal } from './components/CounsellorSyncModal';
 import { LegalPage } from './components/LegalPages';
 
-type RouteMode = 'home' | 'privacy' | 'terms';
+type RouteMode = 'home' | 'privacy' | 'terms' | 'counsellor';
 
 function getRouteFromPath(): RouteMode {
   const path = window.location.pathname.toLowerCase();
   if (path === '/privacy') return 'privacy';
   if (path === '/terms') return 'terms';
+  if (path === '/counsellor') return 'counsellor';
   return 'home';
 }
 
 export default function App() {
-  const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [route, setRoute] = useState<RouteMode>(() => getRouteFromPath());
 
   useEffect(() => {
@@ -81,14 +81,13 @@ export default function App() {
         <EthicalPackSection />
         <BookingSection />
       </main>
-      <Footer
-        onOpenWorkspace={() => setWorkspaceOpen(true)}
-        onNavigateLegal={(mode) => navigateTo(mode)}
-      />
-      <CounsellorSyncModal
-        isOpen={workspaceOpen}
-        onClose={() => setWorkspaceOpen(false)}
-      />
+      <Footer onNavigateLegal={(mode) => navigateTo(mode)} />
+      {route === 'counsellor' && (
+        <CounsellorSyncModal
+          isOpen={true}
+          onClose={() => navigateTo('home')}
+        />
+      )}
     </div>
   );
 }

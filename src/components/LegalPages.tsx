@@ -57,8 +57,8 @@ export function LegalPage({ mode, onBackHome }: LegalPageProps) {
                   When a parent, legal guardian, or family submits a booking application, we
                   collect: teenager name, age, date of birth, parent/guardian contact details,
                   residential address, emergency contact details, guardian ID verification
-                  type and last 4 digits, intake notes, signed consent records, and GTBank
-                  payment confirmation references.
+                  type and last 4 digits, intake notes, signed consent records, and payment
+                  confirmation status.
                 </p>
               </section>
 
@@ -80,8 +80,8 @@ export function LegalPage({ mode, onBackHome }: LegalPageProps) {
                   4. Google Workspace APIs &amp; Limited Use Compliance
                 </h2>
                 <p>
-                  Where a user chooses to authenticate via Google Sign-In, Still Waters
-                  requests access solely to:
+                  Where authorized counsellor administration uses Google Workspace integration,
+                  Still Waters requests access solely to:
                 </p>
                 <ul className="list-disc pl-5 space-y-1.5">
                   <li>
@@ -142,10 +142,12 @@ export function LegalPage({ mode, onBackHome }: LegalPageProps) {
                   2. Bookings, Fees &amp; Cancellation
                 </h2>
                 <p>
-                  Sessions are 45 minutes via Zoom or Google Meet at the founding rate of
-                  ₦20,000 / $40 (following an optional free 20-minute Parent Discovery Call).
-                  Payment to GTBank Account 0014786146 ({PRACTICE_INFO.founder}) confirms a
-                  paid session booking. A 10-minute grace period applies, and 24-hour notice is
+                  Sessions are 45 minutes via Zoom or Google Meet at ₦20,000 (Nigeria) / $40
+                  (International) per single session, or bundled in a 4-session package
+                  (₦75,000 / $150) or 6-session package (₦110,000 / $220), following an
+                  optional free 20-minute Parent Discovery Call. Verified payment links
+                  (Paystack / Flutterwave) or direct payment invoices are sent privately after
+                  booking confirmation. A 10-minute grace period applies, and 24-hour notice is
                   required for rescheduling or cancellation.
                 </p>
               </section>
@@ -175,7 +177,7 @@ export function LegalPage({ mode, onBackHome }: LegalPageProps) {
                   >
                     {PRACTICE_INFO.email}
                   </a>{' '}
-                  or {PRACTICE_INFO.phone}.
+                  or business line {PRACTICE_INFO.phone}.
                 </p>
               </section>
             </div>

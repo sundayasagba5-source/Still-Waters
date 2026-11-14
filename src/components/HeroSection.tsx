@@ -79,7 +79,7 @@ export function HeroSection() {
               <div className="relative flex-1 min-h-[340px] sm:min-h-[400px] bg-[#133C6D]">
                 {!imgError ? (
                   <img
-                    src="/assets/aistudio/IMG-20260902-WA0007_cae7463c.jpg"
+                    src="/assets/aistudio/WhatsApp_Image_2026-11-14_at_9.03.25_AM_25775510.jpeg"
                     alt="Sonibare Titilayo Mary, Founder and Lead Teen Counsellor at Still Waters"
                     referrerPolicy="no-referrer"
                     onError={() => setImgError(true)}
@@ -133,19 +133,21 @@ export function HeroSection() {
             <p className="mt-0.5 text-xs text-[#BFDBFE]">Parent Discovery Call via Zoom / Meet</p>
           </div>
           <div>
-            <p className="text-xs font-medium text-[#7DD3FC]">Founding Session Rate</p>
+            <p className="text-xs font-medium text-[#7DD3FC]">Session &amp; Package Rates</p>
             <p className="mt-1 font-display text-2xl font-semibold text-white tabular-nums">
               ₦20,000 / $40
             </p>
-            <p className="mt-0.5 text-xs text-[#BFDBFE]">45-minute confidential online session</p>
+            <p className="mt-0.5 text-xs text-[#BFDBFE]">
+              Per 45-min session · 4 &amp; 6 session packages available
+            </p>
           </div>
           <div>
-            <p className="text-xs font-medium text-[#7DD3FC]">Private Booking Routing</p>
+            <p className="text-xs font-medium text-[#7DD3FC]">Safe Booking Process</p>
             <p className="mt-1 font-display text-2xl font-semibold text-white">
-              Direct to Counsellor
+              Direct Confirmation
             </p>
             <p className="mt-0.5 text-xs text-[#BFDBFE]">
-              Synced privately to Google Calendar &amp; Gmail
+              Payment link sent privately after booking confirmation
             </p>
           </div>
         </div>

@@ -1,10 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { User } from 'firebase/auth';
+import React, { useState } from 'react';
 import {
   CalendarCheck,
-  Check,
   CheckCircle2,
-  Copy,
   ExternalLink,
   Loader2,
   Lock,
@@ -16,14 +13,10 @@ import { PRACTICE_INFO } from '../data/ethicalPack';
 import {
   BookingPayload,
   COUNSELLOR_EMAIL,
+  SessionPlanType,
   buildGoogleCalendarTemplateUrl,
   buildMailtoFallbackUrl,
-  createCalendarBookingEvent,
-  getAccessToken,
-  googleSignIn,
-  initAuth,
-  logout,
-  sendBookingEmailNotification,
+  formatSessionPlanLabel,
 } from '../lib/googleWorkspace';
 
 const TIMEZONES = [
@@ -57,6 +50,38 @@ const FOCUS_AREAS = [
   'Personal Developmental Coaching (Ages 13–19)',
 ];
 
+const SESSION_PLANS: {
+  id: SessionPlanType;
+  badge: string;
+  title: string;
+  subtitle: string;
+}[] = [
+  {
+    id: 'discovery',
+    badge: '20 Mins · Free',
+    title: 'Parent Discovery Call',
+    subtitle: 'Introductory parent consultation to confirm fit.',
+  },
+  {
+    id: 'counselling',
+    badge: '45 Mins · ₦20,000 / $40',
+    title: 'Single Session',
+    subtitle: 'Confidential 1-on-1 Zoom or Google Meet session.',
+  },
+  {
+    id: 'package4',
+    badge: '4 Sessions · ₦75,000 / $150',
+    title: '4-Session Package',
+    subtitle: 'Structured continuity · Save ₦5,000 / $10.',
+  },
+  {
+    id: 'package6',
+    badge: '6 Sessions · ₦110,000 / $220',
+    title: '6-Session Package',
+    subtitle: 'Deeper teen growth & clarity · Save ₦10,000 / $20.',
+  },
+];
+
 function getTomorrowIso(): string {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -68,24 +93,17 @@ function getTodayIso(): string {
 }
 
 export function BookingSection() {
-  const [user, setUser] = useState<User | null>(null);
-  const [hasToken, setHasToken] = useState(false);
-  const [isSigningIn, setIsSigningIn] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  const [copiedAccount, setCopiedAccount] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [bookingResult, setBookingResult] = useState<{
     bookingId: string;
-    calendarLink: string;
     calendarTemplateLink: string;
     mailtoLink: string;
-    autoSyncedViaApi: boolean;
     summaryDate: string;
     summaryTime: string;
     timezone: string;
+    planLabel: string;
   } | null>(null);
 
   const [form, setForm] = useState<BookingPayload>({
@@ -109,7 +127,7 @@ export function BookingSection() {
     idType: 'National ID (NIN)',
     idLastFour: '',
     currency: 'NGN',
-    paymentReference: '',
+    paymentReference: 'Secure Payment Link (Paystack / Flutterwave) after confirmation',
     notes: '',
     teenSignature: '',
     parentSignature: '',
@@ -124,62 +142,6 @@ export function BookingSection() {
   });
 
   const [formValidationError, setFormValidationError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = initAuth(
-      (signedInUser, token) => {
-        setUser(signedInUser);
-        setHasToken(Boolean(token));
-        setForm((prev) => ({
-          ...prev,
-          parentEmail: prev.parentEmail || signedInUser.email || '',
-        }));
-      },
-      (signedInUser) => {
-        setUser(signedInUser);
-        setHasToken(false);
-      }
-    );
-    return () => unsubscribe();
-  }, []);
-
-  const handleGoogleSignIn = async () => {
-    setAuthError(null);
-    setIsSigningIn(true);
-    try {
-      const result = await googleSignIn();
-      setUser(result.user);
-      setHasToken(Boolean(result.accessToken));
-      setForm((prev) => ({
-        ...prev,
-        parentEmail: prev.parentEmail || result.user.email || '',
-      }));
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : 'Google verification could not be completed. You can still submit your application below.';
-      setAuthError(msg);
-    } finally {
-      setIsSigningIn(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    await logout();
-    setUser(null);
-    setHasToken(false);
-  };
-
-  const handleCopyAccount = async () => {
-    try {
-      await navigator.clipboard.writeText(PRACTICE_INFO.bankDetails.accountNumber);
-      setCopiedAccount(true);
-      setTimeout(() => setCopiedAccount(false), 2200);
-    } catch {
-      // Clipboard not available
-    }
-  };
 
   const updateField = <K extends keyof BookingPayload>(key: K, value: BookingPayload[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -248,47 +210,31 @@ export function BookingSection() {
     setIsSubmitting(true);
     setSubmitError(null);
 
-    const token = getAccessToken();
-    let calendarLink = '';
-    let autoSyncedViaApi = false;
-
     try {
-      if (token && hasToken) {
-        try {
-          const calendarEvent = await createCalendarBookingEvent(token, form);
-          calendarLink = calendarEvent.htmlLink;
-          await sendBookingEmailNotification(token, form, calendarEvent.htmlLink);
-          autoSyncedViaApi = true;
-        } catch (workspaceErr) {
-          console.warn('Workspace API dispatch partial or skipped:', workspaceErr);
-        }
-      }
-
       const saveRes = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          syncedToCalendar: Boolean(calendarLink),
-          calendarLink,
+          syncedToCalendar: false,
+          calendarLink: '',
         }),
       });
 
       const savedData = await saveRes.json();
       if (!saveRes.ok) {
-        throw new Error(savedData?.error || 'Unable to save booking application.');
+        throw new Error(savedData?.error || 'Unable to submit booking request.');
       }
 
       setShowConfirmModal(false);
       setBookingResult({
         bookingId: savedData.booking?.id || 'SW-BOOKING',
-        calendarLink,
         calendarTemplateLink: buildGoogleCalendarTemplateUrl(form),
         mailtoLink: buildMailtoFallbackUrl(form),
-        autoSyncedViaApi,
         summaryDate: form.preferredDate,
         summaryTime: form.preferredTime,
         timezone: form.timezone,
+        planLabel: formatSessionPlanLabel(form.sessionType, form.currency),
       });
     } catch (err: unknown) {
       const msg =
@@ -302,7 +248,23 @@ export function BookingSection() {
     }
   };
 
-  const isCounselling = form.sessionType === 'counselling';
+  const isPaidPlan = form.sessionType !== 'discovery';
+  const selectedPlanLabel = formatSessionPlanLabel(form.sessionType, form.currency);
+
+  const ngnLabel =
+    form.sessionType === 'package4'
+      ? '₦75,000 (Nigeria — 4 Sessions)'
+      : form.sessionType === 'package6'
+      ? '₦110,000 (Nigeria — 6 Sessions)'
+      : '₦20,000 (Nigeria — Single Session)';
+
+  const usdLabel =
+    form.sessionType === 'package4'
+      ? '$150 (International — 4 Sessions)'
+      : form.sessionType === 'package6'
+      ? '$220 (International — 6 Sessions)'
+      : '$40 (International — Single Session)';
+
   const inputClass =
     'w-full px-3.5 py-2.5 rounded-lg bg-white border border-[#BFD6F2] text-sm text-[#0B2545] placeholder:text-[#7C93B0] focus:outline-none focus:ring-2 focus:ring-[#1D4ED8] focus:border-[#1D4ED8] transition-colors';
   const labelClass = 'block text-xs font-semibold text-[#1E3A5F] mb-1.5';
@@ -312,17 +274,15 @@ export function BookingSection() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
         <div className="max-w-3xl mb-10">
           <p className="text-sm font-semibold text-[#EA580C]">
-            Private Booking Application
+            Private Booking Request
           </p>
           <h2 className="mt-2 font-display text-3xl sm:text-4xl font-semibold text-[#0B2545] [text-wrap:balance]">
-            Apply for a Session
+            Request a Session or Discovery Call
           </h2>
           <p className="mt-3 text-base text-[#334E68] leading-relaxed">
-            Your booking details remain completely private. Submit your preferred date,
-            intake details, and signed safeguarding consent below—the application is routed
-            directly to{' '}
-            <span className="font-semibold text-[#0B2545]">{COUNSELLOR_EMAIL}</span> for
-            Google Calendar scheduling and confirmation.
+            Your family’s privacy comes first. Complete your preferred schedule, intake
+            details, and signed safeguarding consent below. No account sign-in or upfront
+            bank transfer is required to submit a booking request.
           </p>
         </div>
 
@@ -334,75 +294,62 @@ export function BookingSection() {
               </div>
               <div className="flex-1">
                 <p className="text-xs font-semibold text-[#15803D] font-mono tabular-nums">
-                  Reference: {bookingResult.bookingId}
+                  Booking Reference: {bookingResult.bookingId}
                 </p>
                 <h3 className="mt-1 font-display text-2xl sm:text-3xl font-semibold text-[#0B2545]">
-                  Booking Application Submitted
+                  Booking Request Received
                 </h3>
                 <p className="mt-2 text-sm sm:text-base text-[#334E68] leading-relaxed">
-                  Thank you, <strong>{form.parentName}</strong>. Your application for{' '}
-                  <strong>{form.teenName}</strong> on{' '}
+                  Thank you, <strong>{form.parentName}</strong>. Your request for{' '}
+                  <strong>{form.teenName}</strong> ({bookingResult.planLabel}) on{' '}
                   <strong className="tabular-nums">
                     {bookingResult.summaryDate} at {bookingResult.summaryTime}
                   </strong>{' '}
-                  ({bookingResult.timezone}) has been recorded.
+                  ({bookingResult.timezone}) has been safely recorded for{' '}
+                  <strong>{PRACTICE_INFO.founder}</strong>.
                 </p>
 
-                {bookingResult.autoSyncedViaApi ? (
-                  <p className="mt-2 text-sm font-medium text-[#15803D]">
-                    Added directly to Google Calendar and emailed to {COUNSELLOR_EMAIL}.
-                  </p>
+                {isPaidPlan ? (
+                  <div className="mt-5 p-4 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] text-sm text-[#1E3A5F] leading-relaxed">
+                    <strong>Next Step — Verified Payment Link:</strong> Once your requested
+                    time slot is reviewed and confirmed, Still Waters will send your secure
+                    payment link (Paystack / Flutterwave) or verified payment details directly
+                    to <strong>{form.parentEmail}</strong>.
+                  </div>
                 ) : (
-                  <p className="mt-2 text-sm text-[#334E68]">
-                    Use the buttons below to add this appointment straight to Google Calendar
-                    (automatically inviting <strong>{COUNSELLOR_EMAIL}</strong>) and send your
-                    confirmation email copy:
-                  </p>
-                )}
-
-                {isCounselling && (
-                  <div className="mt-5 p-4 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] text-sm text-[#7C2D12]">
-                    Payment Reminder: Please transfer{' '}
-                    <strong>{form.currency === 'NGN' ? '₦20,000' : '$40'}</strong> to{' '}
-                    <strong>GTBank · 0014786146</strong> ({PRACTICE_INFO.bankDetails.accountName}).
-                    Payment confirms booking.
+                  <div className="mt-5 p-4 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] text-sm text-[#1E3A5F] leading-relaxed">
+                    <strong>Next Step:</strong> Your 20-minute Parent Discovery Call is free.
+                    Confirmation and meeting link details will be sent to{' '}
+                    <strong>{form.parentEmail}</strong>.
                   </div>
                 )}
 
                 <div className="mt-6 flex flex-wrap items-center gap-3">
                   <a
-                    href={
-                      bookingResult.calendarLink || bookingResult.calendarTemplateLink
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#1D4ED8] hover:bg-[#1E40AF] transition-colors"
+                    href={bookingResult.mailtoLink}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#EA580C] hover:bg-[#C2410C] transition-colors"
                   >
-                    <CalendarCheck className="w-4 h-4" />
-                    <span>
-                      {bookingResult.calendarLink
-                        ? 'View Google Calendar Event'
-                        : 'Add to Google Calendar & Invite Counsellor'}
-                    </span>
-                    <ExternalLink className="w-4 h-4" />
+                    <Mail className="w-4 h-4" />
+                    <span>Send Copy via Email</span>
                   </a>
 
-                  {!bookingResult.autoSyncedViaApi && (
-                    <a
-                      href={bookingResult.mailtoLink}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#EA580C] hover:bg-[#C2410C] transition-colors"
-                    >
-                      <Mail className="w-4 h-4" />
-                      <span>Send Email to {COUNSELLOR_EMAIL}</span>
-                    </a>
-                  )}
+                  <a
+                    href={bookingResult.calendarTemplateLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-[#0B2545] bg-[#E0F2FE] hover:bg-[#BAE6FD] transition-colors"
+                  >
+                    <CalendarCheck className="w-4 h-4" />
+                    <span>Save Reminder to My Calendar</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
 
                   <button
                     type="button"
                     onClick={() => setBookingResult(null)}
-                    className="px-5 py-2.5 rounded-lg text-sm font-semibold text-[#0B2545] bg-[#E0F2FE] hover:bg-[#BAE6FD] transition-colors"
+                    className="px-5 py-2.5 rounded-lg text-sm font-semibold text-[#486581] hover:text-[#0B2545] transition-colors"
                   >
-                    Submit Another Application
+                    Submit Another Request
                   </button>
                 </div>
               </div>
@@ -413,11 +360,11 @@ export function BookingSection() {
             onSubmit={handleOpenReview}
             className="rounded-2xl bg-white border border-[#BFDBFE] overflow-hidden shadow-sm"
           >
-            {/* Section 1: Session Selection & Preferred Date/Time */}
+            {/* Section 1: Session Plan & Preferred Date/Time */}
             <div className="p-6 sm:p-8 border-b border-[#DCE8F8]">
               <div className="flex items-center justify-between gap-4 mb-5">
                 <h3 className="font-display text-xl font-semibold text-[#0B2545]">
-                  01. Session Type &amp; Preferred Time
+                  01. Choose a Session or Package &amp; Preferred Time
                 </h3>
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0284C7]">
                   <Lock className="w-3.5 h-3.5" />
@@ -425,62 +372,42 @@ export function BookingSection() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                <button
-                  type="button"
-                  onClick={() => updateField('sessionType', 'discovery')}
-                  className={`p-4 rounded-xl border text-left transition-colors ${
-                    form.sessionType === 'discovery'
-                      ? 'bg-[#0B2545] text-white border-[#0B2545]'
-                      : 'bg-[#F8FBFF] text-[#0B2545] border-[#BFD6F2] hover:bg-[#E0F2FE]'
-                  }`}
-                >
-                  <p
-                    className={`text-xs font-semibold ${
-                      form.sessionType === 'discovery' ? 'text-[#FB923C]' : 'text-[#0284C7]'
-                    }`}
-                  >
-                    20 Minutes · Free
-                  </p>
-                  <p className="mt-1 font-display text-lg font-semibold">
-                    Parent Discovery Call
-                  </p>
-                  <p
-                    className={`mt-1 text-xs ${
-                      form.sessionType === 'discovery' ? 'text-[#DBEAFE]' : 'text-[#486581]'
-                    }`}
-                  >
-                    Initial consultation to discuss your teen’s needs.
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => updateField('sessionType', 'counselling')}
-                  className={`p-4 rounded-xl border text-left transition-colors ${
-                    form.sessionType === 'counselling'
-                      ? 'bg-[#0B2545] text-white border-[#0B2545]'
-                      : 'bg-[#F8FBFF] text-[#0B2545] border-[#BFD6F2] hover:bg-[#E0F2FE]'
-                  }`}
-                >
-                  <p
-                    className={`text-xs font-semibold tabular-nums ${
-                      form.sessionType === 'counselling' ? 'text-[#FB923C]' : 'text-[#EA580C]'
-                    }`}
-                  >
-                    45 Minutes · ₦20,000 / $40
-                  </p>
-                  <p className="mt-1 font-display text-lg font-semibold">
-                    Online Teen Counselling Session
-                  </p>
-                  <p
-                    className={`mt-1 text-xs ${
-                      form.sessionType === 'counselling' ? 'text-[#DBEAFE]' : 'text-[#486581]'
-                    }`}
-                  >
-                    Confidential 1-on-1 Zoom or Google Meet session.
-                  </p>
-                </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+                {SESSION_PLANS.map((plan) => {
+                  const selected = form.sessionType === plan.id;
+                  return (
+                    <button
+                      key={plan.id}
+                      type="button"
+                      onClick={() => updateField('sessionType', plan.id)}
+                      className={`p-4 rounded-xl border text-left transition-colors flex flex-col justify-between ${
+                        selected
+                          ? 'bg-[#0B2545] text-white border-[#0B2545]'
+                          : 'bg-[#F8FBFF] text-[#0B2545] border-[#BFD6F2] hover:bg-[#E0F2FE]'
+                      }`}
+                    >
+                      <div>
+                        <p
+                          className={`text-xs font-semibold tabular-nums ${
+                            selected ? 'text-[#FB923C]' : 'text-[#0284C7]'
+                          }`}
+                        >
+                          {plan.badge}
+                        </p>
+                        <p className="mt-1 font-display text-base font-semibold leading-snug">
+                          {plan.title}
+                        </p>
+                      </div>
+                      <p
+                        className={`mt-2 text-xs leading-relaxed ${
+                          selected ? 'text-[#DBEAFE]' : 'text-[#486581]'
+                        }`}
+                      >
+                        {plan.subtitle}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -791,50 +718,31 @@ export function BookingSection() {
               </div>
             </div>
 
-            {/* Section 3: GTBank Payment & Ethical Consent Sign-Off */}
+            {/* Section 3: Secure Post-Confirmation Payment & Safeguarding Consent */}
             <div className="p-6 sm:p-8 border-b border-[#DCE8F8]">
               <h3 className="font-display text-xl font-semibold text-[#0B2545] mb-5">
-                03. Payment Details &amp; Safeguarding Consent
+                03. Payment Preference &amp; Safeguarding Consent
               </h3>
 
-              {isCounselling && (
-                <div className="mb-6 p-5 rounded-xl bg-gradient-to-br from-[#FFF7ED] to-[#FEF2F2] border border-[#FDBA74]">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#FED7AA]">
+              {isPaidPlan && (
+                <div className="mb-6 p-5 rounded-xl bg-gradient-to-br from-[#F0F7FF] to-[#FFF7ED] border border-[#BFDBFE]">
+                  <div className="flex items-start gap-3 pb-4 border-b border-[#CFE2F7]">
+                    <ShieldCheck className="w-5 h-5 text-[#0284C7] shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs font-semibold text-[#C2410C]">
-                        GTBank Payment Account · Payment Confirms Booking
+                      <p className="text-xs font-semibold text-[#0284C7]">
+                        {PRACTICE_INFO.paymentPolicy.title}
                       </p>
-                      <p className="mt-1 text-lg font-semibold text-[#0B2545]">
-                        GTBank ·{' '}
-                        <span className="font-mono tabular-nums">
-                          {PRACTICE_INFO.bankDetails.accountNumber}
-                        </span>{' '}
-                        · {PRACTICE_INFO.bankDetails.accountName}
+                      <p className="mt-1 text-sm text-[#1E3A5F] leading-relaxed">
+                        {PRACTICE_INFO.paymentPolicy.summary}{' '}
+                        {PRACTICE_INFO.paymentPolicy.instruction}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleCopyAccount}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-white border border-[#FDBA74] text-[#C2410C] hover:bg-[#FFEDD5] transition-colors self-start sm:self-center shrink-0"
-                    >
-                      {copiedAccount ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-[#15803D]" />
-                          <span>Account Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Copy 0014786146</span>
-                        </>
-                      )}
-                    </button>
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="currency" className={labelClass}>
-                        Session Fee Currency
+                        Billing Region / Rate
                       </label>
                       <select
                         id="currency"
@@ -844,22 +752,27 @@ export function BookingSection() {
                         }
                         className={inputClass}
                       >
-                        <option value="NGN">₦20,000 (NGN — Nigeria)</option>
-                        <option value="USD">$40 (USD — International / Abroad)</option>
+                        <option value="NGN">{ngnLabel}</option>
+                        <option value="USD">{usdLabel}</option>
                       </select>
                     </div>
                     <div>
                       <label htmlFor="paymentReference" className={labelClass}>
-                        Bank Transfer Reference / Sender Name
+                        Preferred Payment Option (Sent After Confirmation)
                       </label>
-                      <input
+                      <select
                         id="paymentReference"
-                        type="text"
-                        placeholder="e.g. Sender name or transfer ref (if paid)"
                         value={form.paymentReference}
                         onChange={(e) => updateField('paymentReference', e.target.value)}
                         className={inputClass}
-                      />
+                      >
+                        <option value="Secure Payment Link (Paystack / Flutterwave) after confirmation">
+                          Secure Payment Link (Paystack / Flutterwave)
+                        </option>
+                        <option value="Verified Bank Transfer Invoice sent privately after confirmation">
+                          Verified Bank Transfer Invoice (Sent privately to email)
+                        </option>
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -987,93 +900,30 @@ export function BookingSection() {
               </div>
             </div>
 
-            {/* Section 4: Optional Google Sign-In & Submit */}
+            {/* Section 4: Clean Parent Submit Bar */}
             <div className="p-6 sm:p-8 bg-[#0B2545] text-white">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div className="max-w-xl">
                   <p className="text-xs font-semibold text-[#7DD3FC]">
-                    04. Submit Application (Optional Instant Google Sync)
+                    04. Complete Booking Request
                   </p>
                   <h3 className="mt-1 font-display text-xl font-semibold text-white">
-                    Route schedule &amp; notification to {COUNSELLOR_EMAIL}
+                    Ready to submit your teenager&apos;s request?
                   </h3>
                   <p className="mt-1.5 text-sm text-[#DBEAFE] leading-relaxed">
-                    Submit directly right now—or optionally sign in with Google (for approved
-                    accounts) to dispatch automatically via Google Calendar &amp; Gmail.
+                    Your request goes privately to {PRACTICE_INFO.founder}. We will confirm
+                    your appointment slot and email your session link (and verified payment link
+                    for paid sessions) directly to you.
                   </p>
-
-                  {authError && (
-                    <p className="mt-3 text-xs font-medium text-[#FCA5A5]">{authError}</p>
-                  )}
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
-                  {!hasToken ? (
-                    <button
-                      type="button"
-                      onClick={handleGoogleSignIn}
-                      disabled={isSigningIn}
-                      className="gsi-material-button"
-                    >
-                      <div className="gsi-material-button-state" />
-                      <div className="gsi-material-button-content-wrapper">
-                        <div className="gsi-material-button-icon">
-                          <svg
-                            version="1.1"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 48 48"
-                            style={{ display: 'block' }}
-                          >
-                            <path
-                              fill="#EA4335"
-                              d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                            />
-                            <path
-                              fill="#4285F4"
-                              d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                            />
-                            <path
-                              fill="#FBBC05"
-                              d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                            />
-                            <path
-                              fill="#34A853"
-                              d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                            />
-                            <path fill="none" d="M0 0h48v48H0z" />
-                          </svg>
-                        </div>
-                        <span className="gsi-material-button-contents">
-                          {isSigningIn ? 'Signing in...' : 'Sign in with Google'}
-                        </span>
-                      </div>
-                    </button>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-3">
-                      <div className="px-3.5 py-2 rounded-lg bg-[#163D6B] border border-[#38BDF8]/35 text-xs text-[#E0F2FE] flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-[#4ADE80]" />
-                        <span>
-                          Google Connected: <strong>{user?.email}</strong>
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleSignOut}
-                        className="text-xs font-medium text-[#BAE6FD] hover:text-white underline underline-offset-4"
-                      >
-                        Disconnect
-                      </button>
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold text-white bg-[#EA580C] hover:bg-[#C2410C] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-                  >
-                    <CalendarCheck className="w-4 h-4" />
-                    <span>Review &amp; Submit Booking</span>
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg text-sm sm:text-base font-semibold text-white bg-[#EA580C] hover:bg-[#C2410C] transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-sm"
+                >
+                  <CalendarCheck className="w-4 h-4" />
+                  <span>Submit Booking Request</span>
+                </button>
               </div>
 
               {(formValidationError || submitError) && (
@@ -1098,13 +948,13 @@ export function BookingSection() {
             <div className="p-6 border-b border-[#DCE8F8] flex items-start justify-between gap-4 bg-[#F5F9FF]">
               <div>
                 <p className="text-xs font-semibold text-[#1D4ED8]">
-                  Confirm Booking Submission
+                  Confirm Booking Request
                 </p>
                 <h3
                   id="confirm-booking-title"
                   className="mt-1 font-display text-2xl font-semibold text-[#0B2545]"
                 >
-                  Ready to Submit Application
+                  Review &amp; Submit
                 </h3>
               </div>
               <button
@@ -1119,19 +969,13 @@ export function BookingSection() {
 
             <div className="p-6 space-y-4 text-sm text-[#334E68]">
               <p className="leading-relaxed">
-                {hasToken
-                  ? 'With your confirmation, this application will be saved, added to Google Calendar, and emailed directly via Gmail:'
-                  : 'With your confirmation, your booking application will be saved and prepared for Google Calendar invitation and email dispatch:'}
+                Please confirm your booking request details below. Still Waters will contact{' '}
+                <strong>{form.parentEmail}</strong> to confirm your session slot.
               </p>
 
               <div className="p-4 rounded-xl bg-[#F0F7FF] border border-[#BFDBFE] space-y-2 text-[#0B2545]">
                 <p>
-                  <strong>Session:</strong>{' '}
-                  {form.sessionType === 'discovery'
-                    ? '20-minute Parent Discovery Call (Free)'
-                    : `45-minute Teen Counselling Session (${
-                        form.currency === 'NGN' ? '₦20,000' : '$40'
-                      })`}
+                  <strong>Selected Plan:</strong> {selectedPlanLabel}
                 </p>
                 <p>
                   <strong>Requested Time:</strong>{' '}
@@ -1141,13 +985,12 @@ export function BookingSection() {
                   ({form.timezone})
                 </p>
                 <p>
-                  <strong>Counsellor Target:</strong> {COUNSELLOR_EMAIL}
+                  <strong>Counsellor:</strong> {PRACTICE_INFO.founder} ({COUNSELLOR_EMAIL})
                 </p>
               </div>
 
               <p className="text-xs text-[#627D98]">
-                Teenager: {form.teenName} (Age {form.teenAge}) · Parent: {form.parentName} (
-                {form.parentEmail})
+                Teenager: {form.teenName} (Age {form.teenAge}) · Parent: {form.parentName}
               </p>
             </div>
 
@@ -1158,7 +1001,7 @@ export function BookingSection() {
                 disabled={isSubmitting}
                 className="px-4 py-2.5 rounded-lg text-sm font-semibold text-[#334E68] bg-[#EEF2F6] hover:bg-[#DCE5EE] transition-colors"
               >
-                Cancel
+                Edit Details
               </button>
               <button
                 type="button"
@@ -1169,12 +1012,12 @@ export function BookingSection() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Submitting Booking...</span>
+                    <span>Submitting...</span>
                   </>
                 ) : (
                   <>
                     <CalendarCheck className="w-4 h-4" />
-                    <span>Confirm &amp; Submit</span>
+                    <span>Confirm Booking Request</span>
                   </>
                 )}
               </button>
