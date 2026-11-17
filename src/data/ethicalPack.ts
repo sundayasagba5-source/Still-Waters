@@ -23,7 +23,7 @@ export const PRACTICE_INFO = {
   tagline: 'A safe place to be heard, healed and guided',
   pillars: 'Calm. Clarity. Confidence.',
   motto: 'Listen · Support · Empower',
-  founder: 'Sonibare Titilayo Mary',
+  founder: 'Titilayo Mary Sonibare',
   qualifications:
     'B.Sc. Psychology (University of Ibadan), M.Sc. HRM (Bells University), Professional Teen Counsellor, Developmental Psychology',
   experienceYears: '16+ Years',
@@ -181,12 +181,12 @@ export const ETHICAL_PACK_DOCUMENTS: EthicalDocument[] = [
     title: 'Professional Disclosure',
     subtitle: 'Credentials, therapeutic approach & scope of practice',
     summary:
-      'Establishes Sonibare Titilayo Mary’s qualifications, 16+ years of teen counselling experience, and clear clinical boundaries.',
+      'Establishes Titilayo Mary Sonibare’s qualifications, 16+ years of teen counselling experience, and clear clinical boundaries.',
     sections: [
       {
         heading: 'Counsellor Profile & Qualifications',
         items: [
-          'Full Name: Sonibare Titilayo Mary — Brand: Still Waters (Online Teen Counselling).',
+          'Full Name: Titilayo Mary Sonibare — Brand: Still Waters (Online Teen Counselling).',
           'Qualifications: B.Sc. Psychology (University of Ibadan), M.Sc. HRM (Bells University), Professional Teen Counsellor, Developmental Psychology.',
           'Experience: Over 16 years productively counselling teenagers home and abroad.',
           'Vision: To be a safe haven where teenagers home and abroad find calm in chaos, clarity in confusion, and confidence to become who they are created to be.',
@@ -245,7 +245,7 @@ export const ETHICAL_PACK_DOCUMENTS: EthicalDocument[] = [
       {
         heading: 'Mandatory Guardian Confirmations',
         items: [
-          'I confirm that I am the legal parent or guardian of the teenager (ages 13–19) applying for counselling at Still Waters by Sonibare Titilayo Mary.',
+          'I confirm that I am the legal parent or guardian of the teenager (ages 13–19) applying for counselling at Still Waters by Titilayo Mary Sonibare.',
           'I have read and understood the Vision, Professional Disclosure, Confidentiality Limits, Safeguarding Policy, and Data Protection notice.',
           'I understand the limits of confidentiality and agree that an adult must be present in the home/premises (though outside the private room for teen confidentiality) during sessions.',
           'I confirm that all parent contact, address, emergency contact, country/city location, and ID verification (ID Type + Last 4 digits) details provided are accurate.',
@@ -296,7 +296,7 @@ export const ETHICAL_PACK_DOCUMENTS: EthicalDocument[] = [
       {
         heading: 'Safeguarding Standards & Boundary Rules',
         items: [
-          'Designated Safeguarding Lead: Sonibare Titilayo Mary (titilayomaryfayehun@gmail.com · Business Line: 0805 166 6668, Mon–Sat 9 AM – 6 PM WAT).',
+          'Designated Safeguarding Lead: Titilayo Mary Sonibare (titilayomaryfayehun@gmail.com · Business Line: 0805 166 6668, Mon–Sat 9 AM – 6 PM WAT).',
           'Paramount Principle: The safety, dignity, and welfare of the child are paramount at all times.',
           'No Private 1:1 Messaging Outside Sessions: All scheduling and communication occur through approved parent-aware channels.',
           'Under-16 Rule: For teenagers under 16, parents/guardians are copied on session communications and scheduling.',
@@ -341,7 +341,7 @@ export const ETHICAL_PACK_DOCUMENTS: EthicalDocument[] = [
       {
         heading: 'Data Handling & Legal Basis',
         items: [
-          'Data Controller: Sonibare Titilayo Mary — Still Waters.',
+          'Data Controller: Titilayo Mary Sonibare — Still Waters.',
           'Data Collected: Teen name, age, DOB, parent contact details, residential address, emergency contact, intake notes, signed consent records, anonymized session notes, and payment records.',
           'Purpose: Providing online counselling, fulfilling safeguarding duties, and meeting legal obligations.',
           'Legal Basis: Explicit parental consent, legitimate safeguarding interest, and legal obligation.',

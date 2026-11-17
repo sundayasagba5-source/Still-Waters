@@ -8,7 +8,7 @@ export function AboutAndValues() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
           <div className="lg:col-span-5">
             <p className="text-sm font-semibold text-[#0284C7]">
-              Why Still Waters Exists
+              Why Still Waters Exist
             </p>
             <h2 className="mt-2 font-display text-3xl sm:text-4xl font-semibold text-[#0B2545] leading-tight [text-wrap:balance]">
               Give your teenager the opportunity to thrive, not just survive adolescence.

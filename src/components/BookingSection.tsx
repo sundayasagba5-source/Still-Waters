@@ -791,7 +791,7 @@ export function BookingSection() {
                   />
                   <span className="text-sm text-[#243B53] leading-relaxed">
                     <strong>Professional Disclosure &amp; Informed Consent:</strong> I have read
-                    the disclosure for Sonibare Titilayo Mary, understand sessions are 45 mins
+                    the disclosure for Titilayo Mary Sonibare, understand sessions are 45 mins
                     (or 20-min free discovery) via Zoom/Google Meet with no recording, and
                     understand Still Waters provides no medical diagnosis, psychiatric treatment,
                     or prescriptions.
@@ -848,7 +848,7 @@ export function BookingSection() {
                   />
                   <span className="text-sm text-[#243B53] leading-relaxed">
                     <strong>Data Protection &amp; Privacy:</strong> I consent to Still Waters
-                    (Data Controller: Sonibare Titilayo Mary) processing this intake and consent
+                    (Data Controller: Titilayo Mary Sonibare) processing this intake and consent
                     record solely for counselling, safeguarding, and legal obligations.
                   </span>
                 </label>

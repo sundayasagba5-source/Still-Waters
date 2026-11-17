@@ -80,14 +80,14 @@ export function HeroSection() {
                 {!imgError ? (
                   <img
                     src="/assets/aistudio/WhatsApp_Image_2026-11-14_at_9.03.25_AM_25775510.jpeg"
-                    alt="Sonibare Titilayo Mary, Founder and Lead Teen Counsellor at Still Waters"
+                    alt="Titilayo Mary Sonibare, Founder and Lead Teen Counsellor at Still Waters"
                     referrerPolicy="no-referrer"
                     onError={() => setImgError(true)}
                     className="w-full h-full object-cover object-top"
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-[#133C6D] to-[#0B2545]">
-                    <span className="font-display text-3xl text-white">Sonibare Titilayo Mary</span>
+                    <span className="font-display text-3xl text-white">Titilayo Mary Sonibare</span>
                     <span className="mt-2 text-sm text-[#BAE6FD]">
                       Founder &amp; Lead Teen Counsellor
                     </span>

@@ -307,7 +307,7 @@ export async function createCalendarBookingEvent(
   const attendees = [
     {
       email: COUNSELLOR_EMAIL,
-      displayName: 'Sonibare Titilayo Mary (Still Waters)',
+      displayName: 'Titilayo Mary Sonibare (Still Waters)',
     },
   ];
   if (
@@ -376,7 +376,7 @@ export async function sendBookingEmailNotification(
 
   const subject = `[Still Waters Booking] ${sessionLabel} — ${booking.teenName} (${booking.preferredDate})`;
   const bodyText = [
-    `Dear Sonibare Titilayo Mary,`,
+    `Dear Titilayo Mary Sonibare,`,
     '',
     `A new Still Waters booking application has been submitted and added to Google Calendar.`,
     calendarLink ? `Google Calendar Event Link: ${calendarLink}` : '',
